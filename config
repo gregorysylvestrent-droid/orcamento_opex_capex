@@ -1,0 +1,4 @@
+Host 100.27.33.178
+  HostName 100.27.33.178
+  IdentityFile C:Usersgregory.sylvestre.sshfrota-key.pem
+  User ubuntu

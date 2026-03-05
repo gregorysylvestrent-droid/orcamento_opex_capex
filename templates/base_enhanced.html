@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="pt-br">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>{{ title or "OPEX vs CAPEX" }}</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- DataTables -->
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.13.8/css/dataTables.bootstrap5.min.css"/>
+
+    <!-- App CSS Enhanced -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='app_enhanced.css') }}">
+
+    <!-- Plotly -->
+    <script src="https://cdn.plot.ly/plotly-2.32.0.min.js"></script>
+    
+    <!-- Adicionar fontes para melhor tipografia (opcional) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  </head>
+  <body>
+    {% set filters = filters|default({'start':'','end':'','tipo_orc':'ALL','unidade2':'ALL','area':'ALL'}) %}
+    {% set source = source|default({'excel_path':'','sheet':'','rows':0}) %}
+
+    <div class="container-fluid">
+      <div class="row">
+        <!-- Sidebar Aprimorada -->
+        <nav class="col-md-2 d-none d-md-block sidebar py-3">
+          <div class="px-3 mb-4">
+            <div class="brand">OPEX / CAPEX</div>
+            <div class="brand-sub">Acompanhamento gerencial</div>
+          </div>
+
+          <ul class="nav flex-column px-2">
+            <li class="nav-item">
+              <a class="nav-link {% if request.path.startswith('/dashboard') %}active{% endif %}" 
+                 href="{{ url_for('dashboard', **filters) }}"
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="right" 
+                 title="Visão geral com gráficos e KPIs">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="display: inline-block; vertical-align: middle;">
+                  <rect x="3" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="3" width="7" height="7"></rect>
+                  <rect x="14" y="14" width="7" height="7"></rect>
+                  <rect x="3" y="14" width="7" height="7"></rect>
+                </svg>
+                Dashboard
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.path.startswith('/details') %}active{% endif %}" 
+                 href="{{ url_for('details', **filters) }}"
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="right" 
+                 title="Tabela detalhada com todos os lançamentos">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="display: inline-block; vertical-align: middle;">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                  <line x1="16" y1="13" x2="8" y2="13"></line>
+                  <line x1="16" y1="17" x2="8" y2="17"></line>
+                  <polyline points="10 9 9 9 8 9"></polyline>
+                </svg>
+                Detalhes
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.path.startswith('/budget') %}active{% endif %}" 
+                 href="{{ url_for('budget', **filters) }}"
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="right" 
+                 title="Comparação com orçamento planejado">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="display: inline-block; vertical-align: middle;">
+                  <line x1="12" y1="1" x2="12" y2="23"></line>
+                  <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+                Orçamento
+              </a>
+            </li>
+            <li class="nav-item">
+              <a class="nav-link {% if request.path.startswith('/upload') %}active{% endif %}" 
+                 href="{{ url_for('upload') }}"
+                 data-bs-toggle="tooltip" 
+                 data-bs-placement="right" 
+                 title="Carregar novos dados">
+                <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-2" style="display: inline-block; vertical-align: middle;">
+                  <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                  <polyline points="17 8 12 3 7 8"></polyline>
+                  <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Upload
+              </a>
+            </li>
+          </ul>
+
+          <!-- Informações da fonte -->
+          <div class="px-3 mt-5 small text-muted" style="opacity: 0.8;">
+            <div class="mb-2" style="font-weight: 600; color: rgba(255,255,255,0.9);">
+              <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1" style="display: inline-block; vertical-align: middle;">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+              Fonte de Dados
+            </div>
+            <div class="text-truncate mb-1" title="{{ source.excel_path }}" style="font-size: 0.75rem;">
+              📄 {{ source.excel_path|truncate(30) }}
+            </div>
+            <div style="font-size: 0.75rem;">
+              📊 <b>Aba:</b> {{ source.sheet }}
+            </div>
+            <div style="font-size: 0.75rem;">
+              📈 <b>Linhas:</b> {{ "{:,}".format(source.rows).replace(",", ".") }}
+            </div>
+          </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="col-md-10 ms-sm-auto px-md-4 py-4">
+          <!-- Flash Messages com animação -->
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+              {% for cat, msg in messages %}
+                <div class="alert alert-{{ cat }} alert-dismissible fade show" role="alert">
+                  <strong>
+                    {% if cat == 'success' %}✓{% elif cat == 'danger' %}✗{% elif cat == 'warning' %}⚠{% else %}ℹ{% endif %}
+                  </strong>
+                  {{ msg }}
+                  <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+              {% endfor %}
+            {% endif %}
+          {% endwith %}
+
+          <!-- Content Block -->
+          {% block content %}{% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <!-- DataTables -->
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.8/js/dataTables.bootstrap5.min.js"></script>
+
+    <!-- App JS Enhanced -->
+    <script src="{{ url_for('static', filename='app_enhanced.js') }}"></script>
+    
+    <!-- Page-specific scripts -->
+    {% block scripts %}{% endblock %}
+  </body>
+</html>

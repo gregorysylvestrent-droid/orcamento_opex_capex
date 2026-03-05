@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% set title = "Upload" %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">Upload</h2>
+    <div class="text-muted">Envie um Excel atualizado e defina qual aba será usada.</div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    <form method="post" enctype="multipart/form-data">
+      <div class="mb-3">
+        <label class="form-label">Arquivo (xlsx)</label>
+        <input class="form-control" type="file" name="file" accept=".xlsx,.xls" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Nome da aba</label>
+        <input class="form-control" name="sheet" value="Logística">
+      </div>
+      <button class="btn btn-primary" type="submit">Carregar</button>
+    </form>
+
+    <hr>
+    <div class="small text-muted">
+      Fonte atual: <b>{{ source.excel_path }}</b> | Aba: <b>{{ source.sheet }}</b>
+    </div>
+  </div>
+</div>
+{% endblock %}

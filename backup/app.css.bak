@@ -1,0 +1,19 @@
+:root{--bg:#0b1320;--card:#0f1c2e;--muted:#96a3b4;}
+body{background:#f5f7fb;}
+.sidebar{
+  min-height:100vh;
+  background: linear-gradient(180deg, var(--bg), #0b1a33);
+  color:#fff;
+}
+.sidebar .nav-link{color:rgba(255,255,255,.8); border-radius:10px; padding:.55rem .8rem; margin:.1rem .4rem;}
+.sidebar .nav-link.active,.sidebar .nav-link:hover{background:rgba(255,255,255,.12); color:#fff;}
+.brand{font-weight:800; letter-spacing:.4px;}
+.brand-sub{font-size:.85rem; color:rgba(255,255,255,.75);}
+
+.card{border:0; border-radius:16px; box-shadow: 0 10px 25px rgba(10,20,40,.08);}
+.card-filter{border-left:4px solid #0b1a33;}
+.kpi .kpi-title{font-size:.85rem; color:var(--muted);}
+.kpi .kpi-value{font-size:1.7rem; font-weight:800;}
+.kpi .kpi-sub{font-size:.85rem;}
+.plot{height:360px;}
+@media (max-width: 992px){.plot{height:320px;}}

@@ -1,0 +1,195 @@
+{% extends "base.html" %}
+{% set title = "Dashboard" %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">Dashboard</h2>
+    <div class="text-muted">Filtros aplicam em todos os gráficos.</div>
+  </div>
+</div>
+
+<form class="card card-filter mb-3" method="get" action="{{ url_for('dashboard') }}">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label">Início</label>
+        <input type="date" class="form-control" name="start" value="{{ filters.start }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Fim</label>
+        <input type="date" class="form-control" name="end" value="{{ filters.end }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" name="tipo_orc">
+          {% for v in opts.tipo_orc %}
+            <option value="{{ v }}" {% if v == filters.tipo_orc %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Unidade</label>
+        <select class="form-select" name="unidade2">
+          {% for v in opts.unidade2 %}
+            <option value="{{ v }}" {% if v == filters.unidade2 %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Área</label>
+        <select class="form-select" name="area">
+          {% for v in opts.area %}
+            <option value="{{ v }}" {% if v == filters.area %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 d-flex gap-2 mt-2">
+        <button class="btn btn-primary" type="submit">Aplicar</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('dashboard') }}">Limpar</a>
+        <a class="btn btn-outline-dark ms-auto" href="{{ url_for('details', **filters) }}">Ver detalhamento</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="row g-3 mb-3">
+  <div class="col-md-3">
+    <div class="kpi card">
+      <div class="card-body">
+        <div class="kpi-title">Total Realizado</div>
+        <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi.total).replace(",", "X").replace(".", ",").replace("X", ".") }}</div>
+        <div class="kpi-sub text-muted">{{ kpi.linhas }} lançamentos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi card">
+      <div class="card-body">
+        <div class="kpi-title">Fornecedores</div>
+        <div class="kpi-value">{{ kpi.fornecedores }}</div>
+        <div class="kpi-sub text-muted">únicos</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi card">
+      <div class="card-body">
+        <div class="kpi-title">Centros de Custo</div>
+        <div class="kpi-value">{{ kpi.centros_custo }}</div>
+        <div class="kpi-sub text-muted">Descr CC</div>
+      </div>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="kpi card">
+      <div class="card-body">
+        <div class="kpi-title">Desconto</div>
+        <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi.desconto).replace(",", "X").replace(".", ",").replace("X", ".") }}</div>
+        <div class="kpi-sub text-muted">{{ "{:.2f}".format(kpi.desconto_pct).replace(".", ",") }}% do total</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="row g-3">
+  <div class="col-lg-4">
+    <div class="card h-100">
+      <div class="card-body">
+        <div id="fig_share" class="plot"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-8">
+    <div class="card h-100">
+      <div class="card-body">
+        <div id="fig_ts" class="plot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <div id="fig_fornec" class="plot"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <div id="fig_cc" class="plot"></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <div id="fig_cta" class="plot"></div>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="card">
+      <div class="card-body">
+        <div id="fig_grupo" class="plot"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <div>
+      <b>Possíveis outliers</b>
+      <div class="text-muted small">Itens acima do padrão da categoria (IQR). Útil para auditoria rápida.</div>
+    </div>
+    <a class="btn btn-sm btn-outline-dark" href="{{ url_for('details', **filters) }}">Abrir na tabela</a>
+  </div>
+  <div class="card-body">
+    {% if outliers|length == 0 %}
+      <div class="text-muted">Sem outliers detectados (ou amostra pequena por categoria).</div>
+    {% else %}
+      <div class="table-responsive">
+        <table class="table table-sm align-middle">
+          <thead>
+            <tr>
+              <th>Data</th>
+              <th>Número</th>
+              <th>Fornecedor</th>
+              <th>Categoria</th>
+              <th>Descrição</th>
+              <th class="text-end">Valor (R$)</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for r in outliers %}
+              <tr>
+                <td>{{ r["Data Emissao"] }}</td>
+                <td>{{ r["Numero"] }}</td>
+                <td>{{ r["Fornecedor"] }}</td>
+                <td>{{ r["Cta. Descrição"] }}</td>
+                <td class="text-truncate" style="max-width: 360px" title="{{ r["Descricao"] }}">{{ r["Descricao"] }}</td>
+                <td class="text-end">R$ {{ "{:,.2f}".format(r["Vlr.Total"]).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  renderPlot("fig_share", {{ fig_share|safe }});
+  renderPlot("fig_ts", {{ fig_ts|safe }});
+  renderPlot("fig_fornec", {{ fig_fornec|safe }});
+  renderPlot("fig_cc", {{ fig_cc|safe }});
+  renderPlot("fig_cta", {{ fig_cta|safe }});
+  renderPlot("fig_grupo", {{ fig_grupo|safe }});
+</script>
+{% endblock %}

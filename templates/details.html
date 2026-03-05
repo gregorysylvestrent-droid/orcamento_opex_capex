@@ -1,0 +1,87 @@
+{% extends "base.html" %}
+{% set title = "Detalhes" %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">Detalhes</h2>
+    <div class="text-muted">Tabela filtrável e exportável (copiar/CSV via DataTables).</div>
+  </div>
+  <a class="btn btn-outline-dark" href="{{ url_for('dashboard', **filters) }}">Voltar</a>
+</div>
+
+<form class="card card-filter mb-3" method="get" action="{{ url_for('details') }}">
+  <div class="card-body">
+    <div class="row g-2 align-items-end">
+      <div class="col-md-2">
+        <label class="form-label">Início</label>
+        <input type="date" class="form-control" name="start" value="{{ filters.start }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Fim</label>
+        <input type="date" class="form-control" name="end" value="{{ filters.end }}">
+      </div>
+      <div class="col-md-2">
+        <label class="form-label">Tipo</label>
+        <select class="form-select" name="tipo_orc">
+          {% for v in opts.tipo_orc %}
+            <option value="{{ v }}" {% if v == filters.tipo_orc %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Unidade</label>
+        <select class="form-select" name="unidade2">
+          {% for v in opts.unidade2 %}
+            <option value="{{ v }}" {% if v == filters.unidade2 %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-md-3">
+        <label class="form-label">Área</label>
+        <select class="form-select" name="area">
+          {% for v in opts.area %}
+            <option value="{{ v }}" {% if v == filters.area %}selected{% endif %}>{{ v }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="col-12 d-flex gap-2 mt-2">
+        <button class="btn btn-primary" type="submit">Aplicar</button>
+        <a class="btn btn-outline-secondary" href="{{ url_for('details') }}">Limpar</a>
+      </div>
+    </div>
+  </div>
+</form>
+
+<div class="card">
+  <div class="card-body">
+    <div class="table-responsive">
+      <table id="tbl" class="table table-striped table-sm align-middle">
+        <thead>
+          <tr>
+            {% for c in cols %}
+              <th>{{ c }}</th>
+            {% endfor %}
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in rows %}
+            <tr>
+              {% for c in cols %}
+                <td>{{ r[c] }}</td>
+              {% endfor %}
+            </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+  initDataTable("#tbl");
+</script>
+{% endblock %}

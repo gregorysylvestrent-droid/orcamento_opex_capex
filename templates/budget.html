@@ -1,0 +1,191 @@
+{% extends "base.html" %}
+{% set title = "Orçamento" %}
+
+{% block content %}
+<div class="d-flex align-items-center justify-content-between mb-3">
+  <div>
+    <h2 class="mb-0">Orçamento vs Realizado</h2>
+    <div class="text-muted">Visão gerencial: KPIs, ranking de desvios e heatmap por centro de custo.</div>
+  </div>
+  <a class="btn btn-outline-dark" href="{{ url_for('dashboard', **filters) }}">Voltar</a>
+</div>
+
+<!-- KPIs + Rank -->
+<div class="col-lg-10">
+  <div class="row g-3">
+    <div class="col-md-3">
+      <div class="card kpi-card">
+        <div class="card-body">
+          <div class="kpi-title">Orçado (Total)</div>
+          <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi_budget.orc|default(0)).replace(",", "X").replace(".",
+            ",").replace("X", ".") }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card kpi-card">
+        <div class="card-body">
+          <div class="kpi-title">Realizado (Total)</div>
+          <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi_budget.real|default(0)).replace(",", "X").replace(".",
+            ",").replace("X", ".") }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card kpi-card">
+        <div class="card-body">
+          <div class="kpi-title">Desvio (R$)</div>
+          <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi_budget.var|default(0)).replace(",", "X").replace(".",
+            ",").replace("X", ".") }}</div>
+        </div>
+      </div>
+    </div>
+    <div class="col-md-3">
+      <div class="card kpi-card">
+        <div class="card-body">
+          <div class="kpi-title">Desvio (%)</div>
+          {% set vp = kpi_budget.var_pct %}
+          <div class="kpi-value">
+            {% if vp is none %}
+            -
+            {% else %}
+            {{ "{:.2f}".format(vp).replace(".", ",") }}%
+            {% endif %}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-7">
+      <div class="card h-100">
+        <div class="card-header"><b>Top 10 desvios (R$)</b></div>
+        <div class="card-body">
+          {% if rank_rows|length == 0 %}
+          <div class="text-muted">Sem dados para o ranking.</div>
+          {% else %}
+          <div class="table-responsive">
+            <table class="table table-sm mb-0">
+              <thead>
+                <tr>
+                  <th>Centro</th>
+                  <th class="text-end">Desvio</th>
+                </tr>
+              </thead>
+              <tbody>
+                {% for r in rank_rows %}
+                <tr>
+                  <td>{{ r["Centro"] }}</td>
+                  <td class="text-end">R$ {{ "{:,.2f}".format(r["Desvio"]).replace(",", "X").replace(".",
+                    ",").replace("X", ".") }}</td>
+                </tr>
+                {% endfor %}
+              </tbody>
+            </table>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <div class="col-md-7">
+      <div class="card h-100">
+        <div class="card-header"><b>Heatmap: desvio %</b> <span class="text-muted">(Top 20 centros por gasto)</span>
+        </div>
+        <div class="card-body">
+          <div id="fig_hm" class="plot" style="min-height:360px;"></div>
+          <div class="small text-muted mt-2">
+            Dica: passe o mouse para ver o desvio por mês. Valores altos indicam centro estourando orçamento.
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<!-- Tabela detalhada -->
+<div class="card mt-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <b>Detalhamento (Mês x Centro de Custo)</b>
+    <span class="text-muted small">Use busca/ordenação para encontrar rapidamente.</span>
+  </div>
+  <div class="card-body">
+    {% if comp_cc_rows|length == 0 %}
+    <div class="text-muted">Sem dados para exibir.</div>
+    {% else %}
+    <div class="table-responsive">
+      <table id="tbl_comp" class="table table-striped table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th>Centro</th>
+            <th class="text-end">OPEX Real</th>
+            <th class="text-end">OPEX Orc</th>
+            <th class="text-end">OPEX Var</th>
+            <th class="text-end">OPEX Var%</th>
+            <th class="text-end">CAPEX Real</th>
+            <th class="text-end">CAPEX Orc</th>
+            <th class="text-end">CAPEX Var</th>
+            <th class="text-end">CAPEX Var%</th>
+            <th class="text-end">Total Var%</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in comp_cc_rows %}
+          <tr>
+            <td>{{ r["Mes"] }}</td>
+            <td>{{ r["Centro_nome"] }}</td>
+
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["OPEX_real"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["OPEX_orc"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["OPEX_var"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">
+              {% if r["OPEX_var_pct"] == "" %}
+              -
+              {% else %}
+              {{ "{:.2f}".format(r["OPEX_var_pct"]|float).replace(".", ",") }}%
+              {% endif %}
+            </td>
+
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["CAPEX_real"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["CAPEX_orc"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["CAPEX_var"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">
+              {% if r["CAPEX_var_pct"] == "" %}
+              -
+              {% else %}
+              {{ "{:.2f}".format(r["CAPEX_var_pct"]|float).replace(".", ",") }}%
+              {% endif %}
+            </td>
+
+            <td class="text-end">
+              {% if r["Total_var_pct"] == "" %}
+              -
+              {% else %}
+              {{ "{:.2f}".format(r["Total_var_pct"]|float).replace(".", ",") }}%
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+  renderPlot("fig_hm", {{ fig_hm| safe }});
+  initDataTable("#tbl_comp");
+</script>
+{% endblock %}
