@@ -5,7 +5,7 @@ import pandas as pd
 import plotly.express as px
 import plotly.io as pio
 import plotly.graph_objects as go
-
+from plotly.subplots import make_subplots
 
 from config import SECRET_KEY, DEFAULT_EXCEL_PATH, DEFAULT_SHEET_NAME, DATA_DIR
 from services.data import (
@@ -187,6 +187,64 @@ def create_app():
             .rename(columns={"Centro_nome": "Centro", "Total_var": "Desvio"})
         )
 
+        # Resumo mensal executivo (orçado, realizado, desvio em R$ e %)
+        month_summary = (
+            comp_cc.groupby("Mes", as_index=False)[["Total_orc", "Total_real", "Total_var"]]
+            .sum()
+            .sort_values("Mes")
+        ) if not comp_cc.empty else pd.DataFrame(columns=["Mes", "Total_orc", "Total_real", "Total_var"])
+
+        if not month_summary.empty:
+            month_summary["Total_var_pct"] = month_summary.apply(
+                lambda r: ((r["Total_var"] / r["Total_orc"]) * 100.0) if r["Total_orc"] else (float("inf") if r["Total_real"] else 0.0),
+                axis=1,
+            )
+        else:
+            month_summary["Total_var_pct"] = []
+
+        # Gráfico 1: barras (orçado x realizado) + linha (desvio em R$)
+        fig_month = make_subplots(specs=[[{"secondary_y": True}]])
+        fig_month.add_trace(
+            go.Bar(name="Orçado (R$)", x=month_summary["Mes"], y=month_summary["Total_orc"], marker_color="#3b82f6"),
+            secondary_y=False,
+        )
+        fig_month.add_trace(
+            go.Bar(name="Realizado (R$)", x=month_summary["Mes"], y=month_summary["Total_real"], marker_color="#10b981"),
+            secondary_y=False,
+        )
+        fig_month.add_trace(
+            go.Scatter(
+                name="Desvio (R$)",
+                x=month_summary["Mes"],
+                y=month_summary["Total_var"],
+                mode="lines+markers",
+                marker=dict(size=8, color="#ef4444"),
+                line=dict(width=2, color="#ef4444"),
+            ),
+            secondary_y=True,
+        )
+        fig_month.update_layout(
+            title="Totais por mês: Orçado x Realizado + Desvio (R$)",
+            barmode="group",
+            legend=dict(orientation="h", yanchor="bottom", y=1.02, xanchor="right", x=1),
+        )
+        fig_month.update_yaxes(title_text="Valor (R$)", secondary_y=False)
+        fig_month.update_yaxes(title_text="Desvio (R$)", secondary_y=True)
+
+        # Gráfico 2: desvio percentual mensal com linha de meta (0%)
+        fig_var_pct = px.bar(
+            month_summary,
+            x="Mes",
+            y="Total_var_pct",
+            title="Desvio percentual por mês (%)",
+            text="Total_var_pct",
+            color="Total_var_pct",
+            color_continuous_scale="RdYlGn_r",
+        )
+        fig_var_pct.update_traces(texttemplate="%{text:.1f}%", textposition="outside")
+        fig_var_pct.add_hline(y=0, line_dash="dash", line_color="#64748b")
+        fig_var_pct.update_layout(coloraxis_showscale=False)
+        
         # Heatmap: Top 20 centros por gasto (desvio % médio)
         top_centros = (
             comp_cc.groupby("Centro_nome")["Total_real"].sum()
@@ -197,7 +255,18 @@ def create_app():
         hm = comp_cc[comp_cc["Centro_nome"].isin(top_centros)].copy()
         pivot = hm.pivot_table(index="Centro_nome", columns="Mes", values="Total_var_pct", aggfunc="mean").fillna(0.0)
 
-        fig_hm = px.imshow(pivot, aspect="auto", title="Heatmap: Desvio % (Top 20 centros por gasto)")
+        if pivot.empty:
+            fig_hm = go.Figure()
+            fig_hm.update_layout(title="Heatmap: Desvio % (Top 20 centros por gasto)")
+            fig_hm.add_annotation(text="Sem dados para heatmap com os filtros atuais.", showarrow=False)
+        else:
+            fig_hm = px.imshow(
+                pivot,
+                aspect="auto",
+                title="Heatmap: Desvio % (Top 20 centros por gasto)",
+                color_continuous_scale="RdYlGn_r",
+                color_continuous_midpoint=0,
+            )
 
         ctx = common_context(f)
         ctx.update({
@@ -205,6 +274,9 @@ def create_app():
             "comp_cc_rows": comp_cc_records,
             "kpi_budget": {"real": total_real, "orc": total_orc, "var": total_var, "var_pct": total_var_pct},
             "rank_rows": rank.fillna("").to_dict(orient="records"),
+            "month_rows": month_summary.replace([float("inf")], None).fillna("").to_dict(orient="records"),
+            "fig_month": fig_month.to_json(),
+            "fig_var_pct": fig_var_pct.to_json(),
             "fig_hm": fig_hm.to_json(),
         })
         return render_template("budget.html", **ctx)
