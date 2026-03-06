@@ -24,7 +24,7 @@
         <label class="form-label">Tipo</label>
         <select class="form-select" name="tipo_orc">
           {% for v in opts.tipo_orc %}
-            <option value="{{ v }}" {% if v == filters.tipo_orc %}selected{% endif %}>{{ v }}</option>
+          <option value="{{ v }}" {% if v==filters.tipo_orc %}selected{% endif %}>{{ v }}</option>
           {% endfor %}
         </select>
       </div>
@@ -32,7 +32,7 @@
         <label class="form-label">Unidade</label>
         <select class="form-select" name="unidade2">
           {% for v in opts.unidade2 %}
-            <option value="{{ v }}" {% if v == filters.unidade2 %}selected{% endif %}>{{ v }}</option>
+          <option value="{{ v }}" {% if v==filters.unidade2 %}selected{% endif %}>{{ v }}</option>
           {% endfor %}
         </select>
       </div>
@@ -40,7 +40,7 @@
         <label class="form-label">Área</label>
         <select class="form-select" name="area">
           {% for v in opts.area %}
-            <option value="{{ v }}" {% if v == filters.area %}selected{% endif %}>{{ v }}</option>
+          <option value="{{ v }}" {% if v==filters.area %}selected{% endif %}>{{ v }}</option>
           {% endfor %}
         </select>
       </div>
@@ -59,7 +59,7 @@
     <div class="kpi card">
       <div class="card-body">
         <div class="kpi-title">Total Realizado</div>
-        <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi.total).replace(",", "X").replace(".", ",").replace("X", ".") }}</div>
+        <div class="kpi-value">R$ {{ (kpi.total|default(0)|string).replace(".", ",") }}</div>
         <div class="kpi-sub text-muted">{{ kpi.linhas }} lançamentos</div>
       </div>
     </div>
@@ -86,7 +86,7 @@
     <div class="kpi card">
       <div class="card-body">
         <div class="kpi-title">Desconto</div>
-        <div class="kpi-value">R$ {{ "{:,.2f}".format(kpi.desconto).replace(",", "X").replace(".", ",").replace("X", ".") }}</div>
+        <div class="kpi-value">R$ {{ (kpi.desconto|default(0)|string).replace(".", ",") }}</div>
         <div class="kpi-sub text-muted">{{ "{:.2f}".format(kpi.desconto_pct).replace(".", ",") }}% do total</div>
       </div>
     </div>
@@ -150,34 +150,35 @@
   </div>
   <div class="card-body">
     {% if outliers|length == 0 %}
-      <div class="text-muted">Sem outliers detectados (ou amostra pequena por categoria).</div>
+    <div class="text-muted">Sem outliers detectados (ou amostra pequena por categoria).</div>
     {% else %}
-      <div class="table-responsive">
-        <table class="table table-sm align-middle">
-          <thead>
-            <tr>
-              <th>Data</th>
-              <th>Número</th>
-              <th>Fornecedor</th>
-              <th>Categoria</th>
-              <th>Descrição</th>
-              <th class="text-end">Valor (R$)</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for r in outliers %}
-              <tr>
-                <td>{{ r["Data Emissao"] }}</td>
-                <td>{{ r["Numero"] }}</td>
-                <td>{{ r["Fornecedor"] }}</td>
-                <td>{{ r["Cta. Descrição"] }}</td>
-                <td class="text-truncate" style="max-width: 360px" title="{{ r["Descricao"] }}">{{ r["Descricao"] }}</td>
-                <td class="text-end">R$ {{ "{:,.2f}".format(r["Vlr.Total"]).replace(",", "X").replace(".", ",").replace("X", ".") }}</td>
-              </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+    <div class="table-responsive">
+      <table class="table table-sm align-middle">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Número</th>
+            <th>Fornecedor</th>
+            <th>Categoria</th>
+            <th>Descrição</th>
+            <th class="text-end">Valor (R$)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in outliers %}
+          <tr>
+            <td>{{ r["Data Emissao"] }}</td>
+            <td>{{ r["Numero"] }}</td>
+            <td>{{ r["Fornecedor"] }}</td>
+            <td>{{ r["Cta. Descrição"] }}</td>
+            <td class="text-truncate" style="max-width: 360px" title="{{ r[" Descricao"] }}">{{ r["Descricao"] }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["Vlr.Total"]).replace(",", "X").replace(".", ",").replace("X",
+              ".") }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
     {% endif %}
   </div>
 </div>
@@ -185,11 +186,11 @@
 
 {% block scripts %}
 <script>
-  renderPlot("fig_share", {{ fig_share|safe }});
-  renderPlot("fig_ts", {{ fig_ts|safe }});
-  renderPlot("fig_fornec", {{ fig_fornec|safe }});
-  renderPlot("fig_cc", {{ fig_cc|safe }});
-  renderPlot("fig_cta", {{ fig_cta|safe }});
-  renderPlot("fig_grupo", {{ fig_grupo|safe }});
+  renderPlot("fig_share", {{ fig_share| safe }});
+  renderPlot("fig_ts", {{ fig_ts| safe }});
+  renderPlot("fig_fornec", {{ fig_fornec| safe }});
+  renderPlot("fig_cc", {{ fig_cc| safe }});
+  renderPlot("fig_cta", {{ fig_cta| safe }});
+  renderPlot("fig_grupo", {{ fig_grupo| safe }});
 </script>
 {% endblock %}

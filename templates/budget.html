@@ -5,7 +5,7 @@
 <div class="d-flex align-items-center justify-content-between mb-3">
   <div>
     <h2 class="mb-0">Orçamento vs Realizado</h2>
-    <div class="text-muted">Visão gerencial: KPIs, ranking de desvios e heatmap por centro de custo.</div>
+    <div class="text-muted">Visão gerencial com foco em comparação mensal de orçado, realizado e desvios.</div>
   </div>
   <a class="btn btn-outline-dark" href="{{ url_for('dashboard', **filters) }}">Voltar</a>
 </div>
@@ -44,7 +44,7 @@
           {% if vp is none %}
           -
           {% else %}
-          {{ (vp|default(0)|string).replace(".", ",") }}%
+          {{ (vp|string).replace(".", ",") }}%
           {% endif %}
         </div>
       </div>
@@ -52,48 +52,66 @@
   </div>
 </div>
 
-<div class="row g-3">
-  <div class="col-lg-4">
+<div class="row g-3 mb-3">
+  <div class="col-lg-8">
     <div class="card h-100">
-      <div class="card-header"><b>Top 10 desvios (R$)</b></div>
       <div class="card-body">
-        {% if rank_rows|length == 0 %}
-        <div class="text-muted">Sem dados para o ranking.</div>
-        {% else %}
-        <div class="table-responsive">
-          <table class="table table-sm mb-0">
-            <thead>
-              <tr>
-                <th>Centro</th>
-                <th class="text-end">Desvio</th>
-              </tr>
-            </thead>
-            <tbody>
-              {% for r in rank_rows %}
-              <tr>
-                <td>{{ r["Centro"] }}</td>
-                <td class="text-end">R$ {{ "{:,.2f}".format(r["Desvio"]).replace(",", "X").replace(".",
-                  ",").replace("X", ".") }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-        {% endif %}
+        <div id="fig_month" class="plot"></div>
       </div>
     </div>
   </div>
-
-  <div class="col-lg-8">
+  <div class="col-lg-4">
     <div class="card h-100">
-      <div class="card-header"><b>Heatmap: desvio %</b> <span class="text-muted">(Top 20 centros por gasto)</span></div>
       <div class="card-body">
-        <div id="fig_hm" class="plot"></div>
-        <div class="small text-muted mt-2">
-          Dica: passe o mouse para ver o desvio por mês. Valores altos indicam centro estourando orçamento.
-        </div>
+        <div id="fig_var_pct" class="plot"></div>
       </div>
     </div>
+  </div>
+</div>
+
+<div class="card mt-3">
+  <div class="card-header d-flex align-items-center justify-content-between">
+    <b>Resumo mensal (Orçado x Realizado x Desvios)</b>
+    <span class="text-muted small">Visão consolidada por mês.</span>
+  </div>
+  <div class="card-body">
+    {% if month_rows|length == 0 %}
+    <div class="text-muted">Sem dados para exibir.</div>
+    {% else %}
+    <div class="table-responsive">
+      <table id="tbl_month" class="table table-striped table-hover align-middle">
+        <thead>
+          <tr>
+            <th>Mês</th>
+            <th class="text-end">Orçado (R$)</th>
+            <th class="text-end">Realizado (R$)</th>
+            <th class="text-end">Desvio (R$)</th>
+            <th class="text-end">Desvio (%)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for r in month_rows %}
+          <tr>
+            <td>{{ r["Mes"] }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["Total_orc"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["Total_real"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">R$ {{ "{:,.2f}".format(r["Total_var"]|float).replace(",", "X").replace(".",
+              ",").replace("X", ".") }}</td>
+            <td class="text-end">
+              {% if r["Total_var_pct"] == "" %}
+              -
+              {% else %}
+              {{ "{:.2f}".format(r["Total_var_pct"]|float).replace(".", ",") }}%
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
   </div>
 </div>
 
@@ -177,7 +195,10 @@
 
 {% block scripts %}
 <script>
+  renderPlot("fig_month", {{ fig_month| safe }});
+  renderPlot("fig_var_pct", {{ fig_var_pct| safe }});
   renderPlot("fig_hm", {{ fig_hm| safe }});
+  initDataTable("#tbl_month");
   initDataTable("#tbl_comp");
 </script>
 {% endblock %}
